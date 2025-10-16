@@ -1,0 +1,31 @@
+# macOS
+.DS_Store
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Outputs and logs
+output*.csv
+*.numbers
+slurm-*.out
+*.out
+*.log
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Editors/IDEs
+.vscode/
+.idea/
+
+# Julia artifacts (optional)
+# Manifest.toml
+
+# Build/temp
+.tmp/
+.cache/
+
+# System
+Thumbs.db
