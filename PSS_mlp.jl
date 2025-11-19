@@ -1,14 +1,12 @@
+# This program implements the multil-level Picard method for the heavy-traffic parallel server system.
+
 @time begin
 
     using Random, Distributions, Statistics, Distributed, LinearAlgebra
     include("rbm2.jl")
     include("PSS_Ex.jl")
-    #include("parameters.jl")
 
     Random.seed!(1234)
-
-    #specify holding cost rate h
-    #specify control matrix G
 
     function cost(state::Vector{Float64})
         #holding cost
@@ -39,30 +37,26 @@
 
     function pss_mlp(t, T, z, gamma, sigma, drift_b, G, beta, level, M)
         dim = length(z)
-        output = zeros(dim + 1)
-        # println(t, x, level)
+        output = zeros(dim + 1) #first coordinate is value function estimate, and the remaining coordinates are gradient estimates.
         if level == 0
             return output
         end
 
         # number of simulated instances
         ns = M ^ level
-        #mmt = mmtm(0, init_mmt, delta)
 
         for _ in 1:ns
             my_tau = zeros(dim)
             my_B = zeros(dim)
             my_R = zeros(dim)
-            my_S = my_rtime(beta, t, T)
+            my_S = my_rtime(beta, t, T) # integration to expectation over random time
             for i in 1:dim
-                my_tau[i] = bm_hitting(z[i], gamma[i], sigma[i], t)
-                my_B[i], my_R[i] = stopped_rbm(z[i], gamma[i], my_tau[i], my_S, sigma[i], t)
+                my_tau[i] = bm_hitting(z[i], gamma[i], sigma[i], t) # hitting time to zero
+                my_B[i], my_R[i] = stopped_rbm(z[i], gamma[i], my_tau[i], my_S, sigma[i], t) # Brownian part at random time my_S, and the reflected Brownian motion at my_S
             end
-            #output += cost(my_R) * vcat([sqrt(my_S - t)], mmt*my_B ./ sigma)
-            #output += cost(my_R) * vcat([sqrt(my_S - t)], my_B ./ sigma)
-            output += vcat(cost(my_R)*sqrt(my_S - t), h.*my_R.*my_B./sigma)
+            output += vcat(cost(my_R)*sqrt(my_S - t), h.*my_R.*my_B./sigma) 
         end
-        output = output / (ns) * my_C(beta, t, T) #+ mmt*[z, 1]
+        output = output / (ns) * my_C(beta, t, T) # This compute the V and DV estimates at level 1.
 
         for l in 1:(level - 1)
             # number of simulated instances
@@ -78,8 +72,8 @@
                     my_tau[i] = bm_hitting(z[i], gamma[i], sigma[i], t)
                     my_B[i], my_R[i] = stopped_rbm(z[i], gamma[i], my_tau[i], my_S, sigma[i], t)
                 end
-                v1 = pss_mlp(my_S, T, my_R, gamma, sigma, drift_b, G, beta, l, M)
-                v2 = pss_mlp(my_S, T, my_R, gamma, sigma, drift_b, G, beta, l - 1, M)
+                v1 = pss_mlp(my_S, T, my_R, gamma, sigma, drift_b, G, beta, l, M) # recursion to compute v^(l)
+                v2 = pss_mlp(my_S, T, my_R, gamma, sigma, drift_b, G, beta, l - 1, M) # recursion to compute v^(l-1)
                 temp += my_C(beta, t, T)*picard_iter(v1, v2, G, drift_b, drift_b) * vcat([sqrt(my_S - t)], my_B ./ sigma)
             end
             temp = temp / (ns) #* my_C(beta, t, T)
@@ -89,6 +83,7 @@
         return output
     end
 
+    # Below is a multithreaded implementation. 
     function pss_mlp_mlt_call(t, T, z, gamma, sigma, drift_b, G, beta, level, M, thread_id, NUM_THREADS)
         dim = length(z)
         output2 = zeros(dim+1)
