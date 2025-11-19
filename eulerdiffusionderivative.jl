@@ -1,3 +1,5 @@
+# This program computes the RBM sample path and its derivative process using an Euler scheme.
+
 using Random, Distributions, Statistics, Plots, LinearAlgebra
 
 struct RF_Input{T1 <: AbstractFloat, T2 <: Int, T3 <: Function}
