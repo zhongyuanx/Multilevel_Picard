@@ -1,10 +1,10 @@
+# This program implements the multilevel Picard scheme for the two-dimensional example in the paper using Euler scheme. 
+
 @time begin
 
     using Random, Distributions, Statistics, Distributed, LinearAlgebra
-    #include("rbm2.jl")
     include("PSS_Ex.jl")
     include("eulerdiffusionderivative.jl")
-    #include("parameters.jl")
     
     Random.seed!(1234)
 
@@ -46,19 +46,16 @@
     function pss_mlp(t, T, z, gamma, sigma, inv_sigma, G, beta, level, M, dsteps = 50)
         dim = length(z)
         output = zeros(dim + 1)
-        # println(t, x, level)
         if level == 0
             return output
         end
     
         # number of simulated instances
         ns = M ^ level
-        #mmt = mmtm(0, init_mmt, delta)
     
         for _ in 1:ns
             my_S = rtime(beta, t, T)
             my_R, my_bel = RF_Output(z, gamma, sigma, inv_sigma, R, drift_b, alpha, t, T, my_S, dsteps)
-            #output += cost(my_R) * vcat([sqrt(my_S - t)], mmt*my_B ./ sigma)
             output += cost(my_R) * vcat([sqrt(my_S - t)], my_bel)
         end
         output = output / (ns) * my_C(beta, t, T) #+ mmt*[z, 1]
@@ -73,7 +70,6 @@
                 my_R, my_bel = RF_Output(z, gamma, sigma, inv_sigma, R, drift_b, alpha, t, T, my_S, dsteps)
                 v1 = pss_mlp(my_S, T, my_R, gamma, sigma, inv_sigma, G, beta, l, M, dsteps)
                 v2 = pss_mlp(my_S, T, my_R, gamma, sigma, inv_sigma, G, beta, l - 1, M, dsteps)
-                #temp += my_C(beta, t, T)*picard_iter(my_R, v1, v2, G, min(drift_b*l/4,drift_b), min(drift_b*(l-1)/4,drift_b)) * vcat([sqrt(my_S - t)], my_bel)
                 temp += my_C(beta, t, T)*picard_iter(my_R, v1, v2, G, drift_b, drift_b) * vcat([sqrt(my_S - t)], my_bel)
             end
             temp = temp / (ns) #* my_C(beta, t, T)
@@ -100,11 +96,6 @@
         for l in 1:(level - 1)
             # number of simulated instances
             ns2 = M^(level-l)
-            #if l < level-1
-            #    ns2 = M ^ (level - l)
-            #else
-            #    ns2 = ceil(Int, M/2)
-            #end
             loop_num = _get_loop_num(ns2, thread_id, NUM_THREADS)
             temp = zeros(dim + 1)
             for _ in 1:loop_num
@@ -112,7 +103,6 @@
                 my_R, my_bel = RF_Output(z, gamma, sigma, inv_sigma, R, drift_b, alpha, t, T, my_S, dsteps)
                 v1 = pss_mlp(my_S, T, my_R, gamma, sigma, inv_sigma, G, beta, l, M, dsteps)
                 v2 = pss_mlp(my_S, T, my_R, gamma, sigma, inv_sigma, G, beta, l - 1, M, dsteps)
-                #temp += my_C(beta, t, T)*picard_iter(my_R, v1, v2, G, min(drift_b*l/4,drift_b), min(drift_b*(l-1)/4,drift_b)) * vcat([sqrt(my_S - t)], my_bel)
                 temp += my_C(beta, t, T)*picard_iter(my_R, v1, v2, G, drift_b, drift_b) * vcat([sqrt(my_S - t)], my_bel)
             end
             temp = temp / (ns2) #* my_C(beta, t, T)
@@ -148,7 +138,6 @@
     
 
     println("T = ", ub, "; drift upper bound = ", drift_b, "; discount factor = ", beta, "; initial state = ", z, "; drift = ", gamma, "; sigma = ", sigma) #"; level = ", level, "; M = ", M) #, "; M2 = ", M2)
-    # # #println(V, ", ", DV1(z))
     
     dsteps = 50
     for level in 3:3
