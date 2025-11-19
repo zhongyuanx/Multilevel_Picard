@@ -1,3 +1,5 @@
+# This file contains the input parameters.
+
 dim = 2
 beta = 0.0
 #epsilon = 0.01 
