@@ -80,12 +80,6 @@
                 end
                 v1 = pss_mlp(my_S, T, my_R, gamma, sigma, drift_b, G, beta, l, M)
                 v2 = pss_mlp(my_S, T, my_R, gamma, sigma, drift_b, G, beta, l - 1, M)
-                #try an Anderson scheme
-                #test1 = pss_mlp(t, T, z, gamma, sigma, G, beta, l, M)
-                #test2 = pss_mlp(t, T, z, gamma, sigma, G, beta, l-1, M)
-                #temp += my_C(beta, t, T)*picard_iter(v1, v2, G, min(l^(0.5), drift_b), min((l-1)^(0.5), drift_b)) * vcat([sqrt(my_S - t)], mmt*my_B ./ sigma) + vcat([0], (1.0-mmt)*(test1[2:end]-test2[2:end]))
-                #temp += my_C(beta, t, T)*picard_iter(v1, v2, G, min(l^(0.5), drift_b), min((l-1)^(0.5), drift_b)) * vcat([sqrt(my_S - t)], my_B ./ sigma) #+ vcat([0], (1.0-mmt)*(test1[2:end]-test2[2:end]))
-                #temp += my_C(beta, t, T)*picard_iter(v1, v2, G, min(drift_b*l/4,drift_b), min(drift_b*(l-1)/4,drift_b)) * vcat([sqrt(my_S - t)], my_B ./ sigma)
                 temp += my_C(beta, t, T)*picard_iter(v1, v2, G, drift_b, drift_b) * vcat([sqrt(my_S - t)], my_B ./ sigma)
             end
             temp = temp / (ns) #* my_C(beta, t, T)
@@ -120,11 +114,6 @@
         for l in 1:(level - 1)
             # number of simulated instances
             ns2 = M^(level-l)
-            #if l < level-1
-            #    ns2 = M ^ (level - l)
-            #else
-            #    ns2 = ceil(Int, M/2)
-            #end
             loop_num = _get_loop_num(ns2, thread_id, NUM_THREADS)
             temp = zeros(dim + 1)
             for _ in 1:loop_num
@@ -138,13 +127,7 @@
                 end
                 v1 = pss_mlp(my_S, T, my_R, gamma, sigma, drift_b, G, beta, l, M)
                 v2 = pss_mlp(my_S, T, my_R, gamma, sigma, drift_b, G, beta, l - 1, M)
-                #try an Anderson scheme
-                #test1 = pss_mlp(t, T, z, gamma, sigma, G, beta, l, M)
-                #test2 = pss_mlp(t, T, z, gamma, sigma, G, beta, l-1, M)
-                #temp += my_C(beta, t, T)*picard_iter(v1, v2, G, min(l^(0.5), drift_b), min((l-1)^(0.5), drift_b)) * vcat([sqrt(my_S - t)], mmt*my_B ./ sigma) + vcat([0], (1.0-mmt) * (test1[2:end]-test2[2:end]))
-                #temp += my_C(beta, t, T)*picard_iter(v1, v2, G, min(l^(0.5), drift_b), min((l-1)^(0.5), drift_b)) * vcat([sqrt(my_S - t)], my_B ./ sigma) #+ vcat([0], (1.0-mmt) * (test1[2:end]-test2[2:end]))
                 temp += my_C(beta, t, T)*picard_iter(v1, v2, G, drift_b, drift_b) * vcat([sqrt(my_S - t)], my_B ./ sigma)
-                #temp += my_C(beta, t, T)*picard_iter(v1, v2, G, min(drift_b*l/4, drift_b), min(drift_b*(l-1)/4, drift_b)) * vcat([sqrt(my_S - t)], my_B ./ sigma)
             end
             temp = temp / (ns2) #* my_C(beta, t, T)
             output2 += temp
@@ -178,15 +161,7 @@
     end
 
 
-    #println("T = ", ub, "; drift upper bound = ", drift_b, "; holding cost = ", h, "; discount factor = ", beta, "; initial state = ", z, "; drift = ", gamma, "; sigma = ", sigma) #"; level = ", level, "; M = ", M) #, "; M2 = ", M2)
     println("T = ", ub, "; holding cost = ", h, "; discount factor = ", beta, "; drift = ", gamma, "; sigma = ", sigma) #"; level = ", level, "; M = ", M) #, "; M2 = ", M2)
-
-    # # #println(V, ", ", DV1(z))
-
-    #for j in 1:2
-        #println(pss_mlp_mlt(0, ub, z, gamma, sigma, G, beta, 7, 8))
-        #println(pss_mlp_test(0, ub, z, gamma, sigma, G, beta, 1, 40000))
-    #end
 
     for level in 5:5
         local test_array1 = []
@@ -196,10 +171,6 @@
         println("level = ", level, "; M = ", M[level])
         for i in 1:5
             temp = pss_mlp_mlt(0, ub, z, gamma, sigma, drift_b, G, beta, level, M[level])
-            #println(temp[1:3])
-            #if level > 4
-                #
-            #end
             push!(test_array1, temp[1])
             push!(test_array2, temp[2])
             push!(test_array3, temp[3])
